@@ -5,6 +5,7 @@ set -e
 # Configuration
 # -------------------------------------------------------------------
 : "${DB_PASSWORD:?Run the script with DB_PASSWORD set}"
+: "${DUCKDNS_TOKEN:?Run the script with DUCKDNS_TOKEN set}"
 
 PROJECT_TAG="04-capstone-practice"
 
@@ -19,6 +20,7 @@ API_INSTANCE_NAME="04-capstone-practice-api"
 API_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
 API_PORT="8000"
 API_REPOSITORY_URL="https://github.com/lukasz789/journal-starter.git"
+DUCKDNS_SUBDOMAIN="lukasz-career-journal"
 
 DB_INSTANCE_NAME="04-capstone-practice-db"
 DB_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
@@ -544,6 +546,7 @@ API_USER_DATA="$(
     printf 'export DATABASE_URL=%s\n' "$DATABASE_URL"
     printf 'export API_REPOSITORY_URL=%s\n' "$API_REPOSITORY_URL"
     printf 'export API_PORT=%s\n' "$API_PORT"
+    printf 'export API_DOMAIN=%s\n' "${DUCKDNS_SUBDOMAIN}.duckdns.org"
     tail -n +2 scripts/api_user_data.sh
 )"
 
@@ -590,6 +593,19 @@ API_PUBLIC_IP="$(
         --query "Reservations[0].Instances[0].PublicIpAddress" \
         --output text
 )"
+
+# Point the DuckDNS domain to the API VM.
+DUCKDNS_RESPONSE="$(
+    curl --silent \
+        "https://www.duckdns.org/update?domains=${DUCKDNS_SUBDOMAIN}&token=${DUCKDNS_TOKEN}&ip=${API_PUBLIC_IP}"
+)"
+
+if [[ "$DUCKDNS_RESPONSE" != "OK" ]]; then
+    echo "DuckDNS update failed: $DUCKDNS_RESPONSE"
+    exit 1
+fi
+
+echo "DuckDNS domain updated: ${DUCKDNS_SUBDOMAIN}.duckdns.org -> ${API_PUBLIC_IP}"
 
 API_PRIVATE_IP="$(
     aws ec2 describe-instances \
@@ -756,4 +772,5 @@ echo "API AMI:             $API_AMI_ID"
 echo "API Instance:        $API_INSTANCE_ID"
 echo "API private IP:      $API_PRIVATE_IP"
 echo "API public IP:       $API_PUBLIC_IP"
+echo "API domain:          ${DUCKDNS_SUBDOMAIN}.duckdns.org"
 echo "Tag:                 Project=$PROJECT_TAG"
