@@ -15,6 +15,11 @@ PRIVATE_SUBNET_CIDR="10.0.2.0/24"
 API_SG_NAME="04-capstone-practice-api-sg"
 DB_SG_NAME="04-capstone-practice-db-sg"
 
+API_INSTANCE_NAME="04-capstone-practice-api"
+API_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
+API_PORT="8000"
+API_REPOSITORY_URL="https://github.com/lukasz789/journal-starter.git"
+
 DB_INSTANCE_NAME="04-capstone-practice-db"
 DB_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
 DB_NAME="career_journal"
@@ -508,6 +513,109 @@ printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > database_connection.env
 chmod 600 database_connection.env
 
 # --------------------------------------------------
+# Ubuntu 24.04 AMI
+# --------------------------------------------------
+echo "Finding the latest Ubuntu 24.04 AMI..."
+
+API_AMI_ID="$(
+    aws ec2 describe-images \
+        --owners 099720109477 \
+        --filters \
+            "Name=name,Values=ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*" \
+            "Name=architecture,Values=x86_64" \
+            "Name=root-device-type,Values=ebs" \
+            "Name=state,Values=available" \
+        --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+        --output text
+)"
+
+if [[ "$API_AMI_ID" == "None" || -z "$API_AMI_ID" ]]; then
+    echo "Ubuntu 24.04 AMI was not found in the current AWS region."
+    exit 1
+fi
+
+# --------------------------------------------------
+# API VM user data
+# --------------------------------------------------
+echo "Preparing API VM user data..."
+
+API_USER_DATA="$(
+    printf '#!/bin/bash\n'
+    printf 'export DATABASE_URL=%s\n' "$DATABASE_URL"
+    printf 'export API_REPOSITORY_URL=%s\n' "$API_REPOSITORY_URL"
+    printf 'export API_PORT=%s\n' "$API_PORT"
+    tail -n +2 scripts/api_user_data.sh
+)"
+
+# --------------------------------------------------
+# API VM
+# --------------------------------------------------
+echo "Creating or reusing API VM..."
+
+API_INSTANCE_ID="$(
+    aws ec2 describe-instances \
+        --filters \
+            "Name=tag:Project,Values=${PROJECT_TAG}" \
+            "Name=tag:Name,Values=${API_INSTANCE_NAME}" \
+            "Name=instance-state-name,Values=pending,running" \
+        --query "Reservations[0].Instances[0].InstanceId" \
+        --output text
+)"
+
+if [[ "$API_INSTANCE_ID" == "None" ]]; then
+    API_INSTANCE_ID="$(
+        aws ec2 run-instances \
+            --image-id "$API_AMI_ID" \
+            --instance-type "$API_INSTANCE_TYPE" \
+            --subnet-id "$PUBLIC_SUBNET_ID" \
+            --security-group-ids "$API_SG_ID" \
+            --associate-public-ip-address \
+            --user-data "$API_USER_DATA" \
+            --query "Instances[0].InstanceId" \
+            --output text
+    )"
+fi
+
+tag_resource "$API_INSTANCE_ID"
+
+aws ec2 create-tags \
+    --resources "$API_INSTANCE_ID" \
+    --tags "Key=Name,Value=${API_INSTANCE_NAME}"
+
+aws ec2 wait instance-running --instance-ids "$API_INSTANCE_ID"
+
+API_PUBLIC_IP="$(
+    aws ec2 describe-instances \
+        --instance-ids "$API_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].PublicIpAddress" \
+        --output text
+)"
+
+API_PRIVATE_IP="$(
+    aws ec2 describe-instances \
+        --instance-ids "$API_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].PrivateIpAddress" \
+        --output text
+)"
+
+API_VOLUME_ID="$(
+    aws ec2 describe-instances \
+        --instance-ids "$API_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" \
+        --output text
+)"
+
+API_NETWORK_INTERFACE_ID="$(
+    aws ec2 describe-instances \
+        --instance-ids "$API_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].NetworkInterfaces[0].NetworkInterfaceId" \
+        --output text
+)"
+
+tag_resource "$API_VOLUME_ID"
+tag_resource "$API_NETWORK_INTERFACE_ID"
+
+# --------------------------------------------------
 # Verification
 # --------------------------------------------------
 
@@ -550,6 +658,24 @@ echo "  Security Group: ${DB_SG_ID}"
 
 aws ec2 describe-instances \
     --instance-ids "$DB_INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].{State:State.Name,Subnet:SubnetId,PrivateIP:PrivateIpAddress,PublicIP:PublicIpAddress,SecurityGroup:SecurityGroups[0].GroupId}' \
+    --output table \
+    --no-cli-pager
+
+echo
+echo "=================================================="
+echo "API VM"
+echo "=================================================="
+
+echo
+echo "Expected:"
+echo "  State: running"
+echo "  Subnet: ${PUBLIC_SUBNET_ID}"
+echo "  Public IP: ${API_PUBLIC_IP}"
+echo "  Security Group: ${API_SG_ID}"
+
+aws ec2 describe-instances \
+    --instance-ids "$API_INSTANCE_ID" \
     --query 'Reservations[0].Instances[0].{State:State.Name,Subnet:SubnetId,PrivateIP:PrivateIpAddress,PublicIP:PublicIpAddress,SecurityGroup:SecurityGroups[0].GroupId}' \
     --output table \
     --no-cli-pager
@@ -626,4 +752,8 @@ echo "DB AMI:              $DB_AMI_ID"
 echo "DB Instance:         $DB_INSTANCE_ID"
 echo "DB private IP:       $DB_PRIVATE_IP"
 echo "DB connection file:  database_connection.env"
+echo "API AMI:             $API_AMI_ID"
+echo "API Instance:        $API_INSTANCE_ID"
+echo "API private IP:      $API_PRIVATE_IP"
+echo "API public IP:       $API_PUBLIC_IP"
 echo "Tag:                 Project=$PROJECT_TAG"
