@@ -34,10 +34,9 @@ def _normalize_llm_json(content: str) -> dict:
         payload = json.loads(cleaned)
     except json.JSONDecodeError:
         start = cleaned.find("{")
-        end = cleaned.rfind("}")
-        if start == -1 or end == -1 or end <= start:
+        if start == -1:
             raise
-        payload = json.loads(cleaned[start : end + 1])
+        payload, _ = json.JSONDecoder().raw_decode(cleaned[start:])
 
     if not isinstance(payload, dict):
         raise ValueError("LLM response was not a JSON object")
