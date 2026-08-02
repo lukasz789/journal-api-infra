@@ -4,6 +4,8 @@ set -e
 # -------------------------------------------------------------------
 # Configuration
 # -------------------------------------------------------------------
+: "${DB_PASSWORD:?Run the script with DB_PASSWORD set}"
+
 PROJECT_TAG="04-capstone-practice"
 
 VPC_CIDR="10.0.0.0/16"
@@ -12,6 +14,12 @@ PRIVATE_SUBNET_CIDR="10.0.2.0/24"
 
 API_SG_NAME="04-capstone-practice-api-sg"
 DB_SG_NAME="04-capstone-practice-db-sg"
+
+DB_INSTANCE_NAME="04-capstone-practice-db"
+DB_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
+DB_NAME="career_journal"
+DB_USER="career_journal_app"
+DB_PORT="5432"
 
 # --------------------------------------------------
 # Helpers
@@ -381,7 +389,7 @@ aws ec2 authorize-security-group-ingress \
 aws ec2 authorize-security-group-ingress \
     --group-id "$DB_SG_ID" \
     --protocol tcp \
-    --port 5432 \
+    --port "$DB_PORT" \
     --cidr "$PUBLIC_SUBNET_CIDR" \
     >/dev/null 2>&1 || true
 
@@ -391,7 +399,114 @@ aws ec2 authorize-security-group-egress \
     --protocol -1 \
     --cidr "0.0.0.0/0" \
     >/dev/null 2>&1 || true
-    
+
+# --------------------------------------------------
+# Amazon Linux 2023 AMI
+# --------------------------------------------------
+echo "Finding the latest Amazon Linux 2023 AMI..."
+
+DB_AMI_ID="$(
+    aws ec2 describe-images \
+        --owners amazon \
+        --filters \
+            "Name=name,Values=al2023-ami-2023.*-kernel-6.1-x86_64" \
+            "Name=architecture,Values=x86_64" \
+            "Name=root-device-type,Values=ebs" \
+            "Name=state,Values=available" \
+        --query "sort_by(Images, &CreationDate)[-1].ImageId" \
+        --output text
+)"
+
+if [[ "$DB_AMI_ID" == "None" || -z "$DB_AMI_ID" ]]; then
+    echo "Amazon Linux 2023 AMI was not found in the current AWS region."
+    exit 1
+fi
+
+# --------------------------------------------------
+# Database VM user data
+# --------------------------------------------------
+echo "Preparing database VM user data..."
+
+DB_USER_DATA="$(
+    printf '#!/bin/bash\n'
+    printf 'export DB_NAME=%s\n' "$DB_NAME"
+    printf 'export DB_USER=%s\n' "$DB_USER"
+    printf 'export DB_PASSWORD=%s\n' "$DB_PASSWORD"
+    printf 'export API_SUBNET_CIDR=%s\n' "$PUBLIC_SUBNET_CIDR"
+    printf "cat > /tmp/database_setup.sql <<'DATABASE_SQL'\n"
+    cat database_setup.sql
+    printf '\nDATABASE_SQL\n'
+    tail -n +2 scripts/database_user_data.sh
+)"
+
+# --------------------------------------------------
+# Database VM
+# --------------------------------------------------
+echo "Creating or reusing database VM..."
+
+DB_INSTANCE_ID="$(
+    aws ec2 describe-instances \
+        --filters \
+            "Name=tag:Project,Values=${PROJECT_TAG}" \
+            "Name=tag:Name,Values=${DB_INSTANCE_NAME}" \
+            "Name=instance-state-name,Values=pending,running" \
+        --query "Reservations[0].Instances[0].InstanceId" \
+        --output text
+)"
+
+if [[ "$DB_INSTANCE_ID" == "None" ]]; then
+    DB_INSTANCE_ID="$(
+        aws ec2 run-instances \
+            --image-id "$DB_AMI_ID" \
+            --instance-type "$DB_INSTANCE_TYPE" \
+            --subnet-id "$PRIVATE_SUBNET_ID" \
+            --security-group-ids "$DB_SG_ID" \
+            --user-data "$DB_USER_DATA" \
+            --query "Instances[0].InstanceId" \
+            --output text
+    )"
+fi
+
+tag_resource "$DB_INSTANCE_ID"
+
+aws ec2 create-tags \
+    --resources "$DB_INSTANCE_ID" \
+    --tags "Key=Name,Value=${DB_INSTANCE_NAME}"
+
+aws ec2 wait instance-running --instance-ids "$DB_INSTANCE_ID"
+
+DB_PRIVATE_IP="$(
+    aws ec2 describe-instances \
+        --instance-ids "$DB_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].PrivateIpAddress" \
+        --output text
+)"
+
+DB_VOLUME_ID="$(
+    aws ec2 describe-instances \
+        --instance-ids "$DB_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].BlockDeviceMappings[0].Ebs.VolumeId" \
+        --output text
+)"
+
+DB_NETWORK_INTERFACE_ID="$(
+    aws ec2 describe-instances \
+        --instance-ids "$DB_INSTANCE_ID" \
+        --query "Reservations[0].Instances[0].NetworkInterfaces[0].NetworkInterfaceId" \
+        --output text
+)"
+
+tag_resource "$DB_VOLUME_ID"
+tag_resource "$DB_NETWORK_INTERFACE_ID"
+
+# --------------------------------------------------
+# Database connection
+# --------------------------------------------------
+DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_PRIVATE_IP}:${DB_PORT}/${DB_NAME}"
+
+printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > database_connection.env
+chmod 600 database_connection.env
+
 # --------------------------------------------------
 # Verification
 # --------------------------------------------------
@@ -418,6 +533,24 @@ echo "Expected: 0.0.0.0/0 -> NAT Gateway"
 aws ec2 describe-route-tables \
     --route-table-ids "$PRIVATE_RTB_ID" \
     --query 'RouteTables[0].Routes[?DestinationCidrBlock==`0.0.0.0/0`].[DestinationCidrBlock,NatGatewayId,State]' \
+    --output table \
+    --no-cli-pager
+
+echo
+echo "=================================================="
+echo "Database VM"
+echo "=================================================="
+
+echo
+echo "Expected:"
+echo "  State: running"
+echo "  Subnet: ${PRIVATE_SUBNET_ID}"
+echo "  Public IP: None"
+echo "  Security Group: ${DB_SG_ID}"
+
+aws ec2 describe-instances \
+    --instance-ids "$DB_INSTANCE_ID" \
+    --query 'Reservations[0].Instances[0].{State:State.Name,Subnet:SubnetId,PrivateIP:PrivateIpAddress,PublicIP:PublicIpAddress,SecurityGroup:SecurityGroups[0].GroupId}' \
     --output table \
     --no-cli-pager
 
@@ -457,8 +590,8 @@ echo "=================================================="
 echo
 echo "Inbound rules:"
 echo "Expected:"
-echo "  TCP 22   from ${PUBLIC_SUBNET_CIDR}"
-echo "  TCP 5432 from ${PUBLIC_SUBNET_CIDR}"
+echo "  TCP 22 from ${PUBLIC_SUBNET_CIDR}"
+echo "  TCP ${DB_PORT} from ${PUBLIC_SUBNET_CIDR}"
 
 aws ec2 describe-security-group-rules \
     --filters "Name=group-id,Values=${DB_SG_ID}" \
@@ -478,7 +611,7 @@ aws ec2 describe-security-group-rules \
 
 echo
 echo "=================================================="
-echo "Network provisioning completed"
+echo "Provisioning completed"
 echo "=================================================="
 echo "VPC:                 $VPC_ID"
 echo "Public subnet:       $PUBLIC_SUBNET_ID"
@@ -489,4 +622,8 @@ echo "Private route table: $PRIVATE_RTB_ID"
 echo "NAT Gateway:         $NAT_GATEWAY_ID"
 echo "API Security Group:  $API_SG_ID"
 echo "DB Security Group:   $DB_SG_ID"
+echo "DB AMI:              $DB_AMI_ID"
+echo "DB Instance:         $DB_INSTANCE_ID"
+echo "DB private IP:       $DB_PRIVATE_IP"
+echo "DB connection file:  database_connection.env"
 echo "Tag:                 Project=$PROJECT_TAG"
