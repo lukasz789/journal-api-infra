@@ -6,6 +6,9 @@ set -e
 : "${API_REPOSITORY_URL:?API_REPOSITORY_URL is required}"
 : "${API_PORT:?API_PORT is required}"
 : "${API_DOMAIN:?API_DOMAIN is required}"
+: "${OPENAI_API_KEY:?OPENAI_API_KEY is required}"
+: "${OPENAI_BASE_URL:?OPENAI_BASE_URL is required}"
+: "${OPENAI_MODEL:?OPENAI_MODEL is required}"
 
 PROJECT_DIR="/opt/journal-starter"
 
@@ -33,9 +36,11 @@ export PATH="/root/.local/bin:$PATH"
 cd "$PROJECT_DIR"
 uv sync
 
-# Configure the database connection used by the API.
+# Configure the API.
 printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > .env
-printf 'OPENAI_API_KEY=not-used-for-crud\n' >> .env
+printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" >> .env
+printf 'OPENAI_BASE_URL=%s\n' "$OPENAI_BASE_URL" >> .env
+printf 'OPENAI_MODEL=%s\n' "$OPENAI_MODEL" >> .env
 chmod 600 .env
 
 # Run the API as a background service.

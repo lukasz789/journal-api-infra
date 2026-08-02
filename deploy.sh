@@ -6,6 +6,7 @@ set -e
 # -------------------------------------------------------------------
 : "${DB_PASSWORD:?Run the script with DB_PASSWORD set}"
 : "${DUCKDNS_TOKEN:?Run the script with DUCKDNS_TOKEN set}"
+: "${OPENAI_API_KEY:?Run the script with OPENAI_API_KEY set}"
 
 PROJECT_TAG="04-capstone-practice"
 
@@ -21,6 +22,8 @@ API_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
 API_PORT="8000"
 API_REPOSITORY_URL="https://github.com/lukasz789/journal-starter.git"
 DUCKDNS_SUBDOMAIN="lukasz-career-journal"
+OPENAI_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1"
+OPENAI_MODEL="openai.gpt-oss-20b-1:0"
 
 DB_INSTANCE_NAME="04-capstone-practice-db"
 DB_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
@@ -547,6 +550,9 @@ API_USER_DATA="$(
     printf 'export API_REPOSITORY_URL=%s\n' "$API_REPOSITORY_URL"
     printf 'export API_PORT=%s\n' "$API_PORT"
     printf 'export API_DOMAIN=%s\n' "${DUCKDNS_SUBDOMAIN}.duckdns.org"
+    printf 'export OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY"
+    printf 'export OPENAI_BASE_URL=%s\n' "$OPENAI_BASE_URL"
+    printf 'export OPENAI_MODEL=%s\n' "$OPENAI_MODEL"
     tail -n +2 scripts/api_user_data.sh
 )"
 
