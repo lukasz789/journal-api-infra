@@ -5,6 +5,7 @@ set -e
 # Configuration
 # -------------------------------------------------------------------
 : "${DB_PASSWORD:?Run the script with DB_PASSWORD set}"
+: "${DUCKDNS_SUBDOMAIN:?Run the script with DUCKDNS_SUBDOMAIN set}"
 : "${DUCKDNS_TOKEN:?Run the script with DUCKDNS_TOKEN set}"
 : "${OPENAI_API_KEY:?Run the script with OPENAI_API_KEY set}"
 
@@ -21,7 +22,6 @@ API_INSTANCE_NAME="04-capstone-practice-api"
 API_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
 API_PORT="8000"
 API_REPOSITORY_URL="https://github.com/lukasz789/journal-starter.git"
-DUCKDNS_SUBDOMAIN="lukasz-career-journal"
 OPENAI_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1"
 OPENAI_MODEL="openai.gpt-oss-20b-1:0"
 
