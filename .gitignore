@@ -129,7 +129,6 @@ celerybeat.pid
 
 # Environments
 .env
-database_connection.env
 .venv
 env/
 venv/
