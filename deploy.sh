@@ -9,23 +9,23 @@ set -e
 : "${DUCKDNS_TOKEN:?Run the script with DUCKDNS_TOKEN set}"
 : "${OPENAI_API_KEY:?Run the script with OPENAI_API_KEY set}"
 
-PROJECT_TAG="04-capstone-practice"
+PROJECT_TAG="aws-cli-practice"
 
 VPC_CIDR="10.0.0.0/16"
 PUBLIC_SUBNET_CIDR="10.0.1.0/24"
 PRIVATE_SUBNET_CIDR="10.0.2.0/24"
 
-API_SG_NAME="04-capstone-practice-api-sg"
-DB_SG_NAME="04-capstone-practice-db-sg"
+API_SG_NAME="aws-cli-practice-api-sg"
+DB_SG_NAME="aws-cli-practice-db-sg"
 
-API_INSTANCE_NAME="04-capstone-practice-api"
+API_INSTANCE_NAME="aws-cli-practice-api"
 API_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
 API_PORT="8000"
 API_REPOSITORY_URL="https://github.com/lukasz789/journal-starter.git"
 OPENAI_BASE_URL="https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1"
 OPENAI_MODEL="openai.gpt-oss-20b-1:0"
 
-DB_INSTANCE_NAME="04-capstone-practice-db"
+DB_INSTANCE_NAME="aws-cli-practice-db"
 DB_INSTANCE_TYPE="t3.small" # 2 GiB RAM, so no swap is required
 DB_NAME="career_journal"
 DB_USER="career_journal_app"
@@ -328,14 +328,6 @@ fi
 
 tag_resource "$API_SG_ID"
 
-# SSH
-aws ec2 authorize-security-group-ingress \
-    --group-id "$API_SG_ID" \
-    --protocol tcp \
-    --port 22 \
-    --cidr "0.0.0.0/0" \
-    >/dev/null 2>&1 || true
-
 # HTTP
 aws ec2 authorize-security-group-ingress \
     --group-id "$API_SG_ID" \
@@ -385,15 +377,6 @@ if [[ "$DB_SG_ID" == "None" ]]; then
 fi
 
 tag_resource "$DB_SG_ID"
-
-
-# SSH only from public subnet
-aws ec2 authorize-security-group-ingress \
-    --group-id "$DB_SG_ID" \
-    --protocol tcp \
-    --port 22 \
-    --cidr "$PUBLIC_SUBNET_CIDR" \
-    >/dev/null 2>&1 || true
 
 # PostgreSQL only from public subnet
 aws ec2 authorize-security-group-ingress \
@@ -707,7 +690,6 @@ echo "=================================================="
 echo
 echo "Inbound rules:"
 echo "Expected:"
-echo "  TCP 22  from 0.0.0.0/0"
 echo "  TCP 80  from 0.0.0.0/0"
 echo "  TCP 443 from 0.0.0.0/0"
 
@@ -735,7 +717,6 @@ echo "=================================================="
 echo
 echo "Inbound rules:"
 echo "Expected:"
-echo "  TCP 22 from ${PUBLIC_SUBNET_CIDR}"
 echo "  TCP ${DB_PORT} from ${PUBLIC_SUBNET_CIDR}"
 
 aws ec2 describe-security-group-rules \
