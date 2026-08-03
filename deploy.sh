@@ -514,9 +514,6 @@ tag_resource "$DB_NETWORK_INTERFACE_ID"
 # --------------------------------------------------
 DATABASE_URL="postgresql://${DB_USER}:${DB_PASSWORD}@${DB_PRIVATE_IP}:${DB_PORT}/${DB_NAME}"
 
-printf 'DATABASE_URL=%s\n' "$DATABASE_URL" > database_connection.env
-chmod 600 database_connection.env
-
 # --------------------------------------------------
 # Ubuntu 24.04 AMI
 # --------------------------------------------------
@@ -773,7 +770,6 @@ echo "DB Security Group:   $DB_SG_ID"
 echo "DB AMI:              $DB_AMI_ID"
 echo "DB Instance:         $DB_INSTANCE_ID"
 echo "DB private IP:       $DB_PRIVATE_IP"
-echo "DB connection file:  database_connection.env"
 echo "API AMI:             $API_AMI_ID"
 echo "API Instance:        $API_INSTANCE_ID"
 echo "API private IP:      $API_PRIVATE_IP"
