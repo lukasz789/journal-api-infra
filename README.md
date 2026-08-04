@@ -285,11 +285,40 @@ Example:
 }
 ```
 
-After creating an entry, verify Amazon Bedrock analysis:
+Create a journal entry:
 
 ```bash
-curl -X POST \
-  "https://${API_DOMAIN}/entries/<entry-id>/analyze"
+curl --fail --silent --show-error \
+  -X POST \
+  "https://${API_DOMAIN}/entries" \
+  -H "Content-Type: application/json" \
+  --data '{
+    "work": "Deployed the Journal API to AWS",
+    "struggle": "Troubleshooting connectivity between the API and database",
+    "intention": "Add monitoring and improve the deployment checks"
+  }'
+```
+
+The response should have HTTP status `201` and contain the new entry under the
+`entry` key. Copy its `id`, then set it as an environment variable:
+
+```bash
+ENTRY_ID='<entry-id-from-the-create-response>'
+```
+
+Verify that the entry can be retrieved:
+
+```bash
+curl --fail --silent --show-error \
+  "https://${API_DOMAIN}/entries/${ENTRY_ID}"
+```
+
+Finally, verify Amazon Bedrock analysis for the entry:
+
+```bash
+curl --fail --silent --show-error \
+  -X POST \
+  "https://${API_DOMAIN}/entries/${ENTRY_ID}/analyze"
 ```
 
 The response should contain:

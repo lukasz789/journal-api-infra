@@ -9,9 +9,30 @@ set -e
 
 POSTGRES_DATA_DIR="/var/lib/pgsql/data"
 POSTGRES_HBA="${POSTGRES_DATA_DIR}/pg_hba.conf"
+DNF_MAX_ATTEMPTS=10
+DNF_RETRY_DELAY_SECONDS=15
 
-# Install and initialize PostgreSQL.
-dnf install -y postgresql15 postgresql15-server
+# A newly created NAT Gateway or route can be temporarily unavailable even
+# after AWS reports it as ready. Retry package installation so a transient
+# repository timeout does not permanently fail this instance's user data.
+for ((attempt = 1; attempt <= DNF_MAX_ATTEMPTS; attempt++)); do
+    echo "Installing PostgreSQL packages (attempt ${attempt}/${DNF_MAX_ATTEMPTS})..."
+
+    if dnf install -y postgresql15 postgresql15-server; then
+        break
+    fi
+
+    if ((attempt == DNF_MAX_ATTEMPTS)); then
+        echo "PostgreSQL package installation failed after ${DNF_MAX_ATTEMPTS} attempts."
+        exit 1
+    fi
+
+    echo "Package installation failed. Retrying in ${DNF_RETRY_DELAY_SECONDS} seconds..."
+    dnf clean metadata || true
+    sleep "$DNF_RETRY_DELAY_SECONDS"
+done
+
+# Initialize PostgreSQL.
 postgresql-setup --initdb
 
 # Start PostgreSQL now and enable automatic starts after system reboots
