@@ -1,0 +1,9 @@
+.git/
+.devcontainer/
+tests/
+.venv/
+.env
+.env.*
+__pycache__/
+*.py[cod]
+.pytest_cache/
