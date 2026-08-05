@@ -4,6 +4,6 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-  description = "Short project name used as a prefix for AWS resource names."
+  description = "Project name used for naming AWS resources."
   type        = string
 }
