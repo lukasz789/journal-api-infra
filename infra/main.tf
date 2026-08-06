@@ -13,4 +13,8 @@ resource "aws_ecr_repository" "journal_api" {
     # image known vulnerability scanning
     scan_on_push = true
   }
+
+  tags = {
+    Name = "${var.project_name}-ecr"
+  }
 }
