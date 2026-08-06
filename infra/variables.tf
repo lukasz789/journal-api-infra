@@ -8,6 +8,11 @@ variable "project_name" {
   type        = string
 }
 
+variable "eks_cluster_version" {
+  description = "Kubernetes minor version used by the EKS control plane."
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "IPv4 CIDR block assigned to the VPC."
   type        = string

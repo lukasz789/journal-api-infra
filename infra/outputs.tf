@@ -22,3 +22,13 @@ output "private_subnet_ids" {
   description = "IDs of the private subnets used by EKS nodes and RDS."
   value       = aws_subnet.private[*].id
 }
+
+output "eks_cluster_name" {
+  description = "Name of the EKS cluster."
+  value       = aws_eks_cluster.main.name
+}
+
+output "eks_cluster_endpoint" {
+  description = "Endpoint of the Kubernetes API server."
+  value       = aws_eks_cluster.main.endpoint
+}
