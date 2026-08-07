@@ -13,6 +13,16 @@ variable "eks_cluster_version" {
   type        = string
 }
 
+variable "eks_pod_identity_agent_version" {
+  description = "Version of the EKS Pod Identity Agent add-on."
+  type        = string
+}
+
+variable "eks_vpc_cni_version" {
+  description = "Version of the Amazon VPC CNI add-on."
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "IPv4 CIDR block assigned to the VPC."
   type        = string

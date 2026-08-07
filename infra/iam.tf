@@ -65,3 +65,41 @@ resource "aws_iam_role_policy_attachment" "eks_ecr_pull" {
   # managed policy which allows EKS worker nodes to pull container images from ECR
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPullOnly"
 }
+
+# ------------------------------------------------------------------------------
+# IAM role used by the Amazon VPC CNI add-on through EKS Pod Identity
+# ------------------------------------------------------------------------------
+# https://docs.aws.amazon.com/eks/latest/userguide/add-ons-iam.html
+# Trust policy for the VPC CNI IAM role.
+# Allows EKS Pod Identity (pods.eks.amazonaws.com) to assume the role
+# and provide temporary AWS credentials to the aws-node ServiceAccount.
+data "aws_iam_policy_document" "eks_vpc_cni_assume_role" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "sts:AssumeRole",
+      "sts:TagSession",
+    ]
+
+    principals {
+      type        = "Service"
+      identifiers = ["pods.eks.amazonaws.com"]
+    }
+  }
+}
+
+# IAM role that will be assumed by EKS Pod Identity on behalf of aws-node.
+resource "aws_iam_role" "eks_vpc_cni" {
+  name               = "${var.project_name}-vpc-cni-role"
+  assume_role_policy = data.aws_iam_policy_document.eks_vpc_cni_assume_role.json
+
+  tags = {
+    Name = "${var.project_name}-vpc-cni-role"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "eks_vpc_cni" {
+  role = aws_iam_role.eks_vpc_cni.name
+  # managed policy which allows the VPC CNI to manage network interfaces and IP addresses for Pods.
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
