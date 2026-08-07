@@ -23,6 +23,26 @@ variable "eks_vpc_cni_version" {
   type        = string
 }
 
+variable "eks_node_instance_type" {
+  description = "EC2 instance type used by the EKS managed node group."
+  type        = string
+}
+
+variable "eks_node_min_size" {
+  description = "Minimum number of EC2 instances in the EKS managed node group."
+  type        = number
+}
+
+variable "eks_node_desired_size" {
+  description = "Desired number of EC2 instances in the EKS managed node group."
+  type        = number
+}
+
+variable "eks_node_max_size" {
+  description = "Maximum number of EC2 instances in the EKS managed node group."
+  type        = number
+}
+
 variable "vpc_cidr" {
   description = "IPv4 CIDR block assigned to the VPC."
   type        = string

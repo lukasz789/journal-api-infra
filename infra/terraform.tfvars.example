@@ -6,6 +6,11 @@ eks_cluster_version = "1.36"
 eks_pod_identity_agent_version = "v1.3.10-eksbuild.2"
 eks_vpc_cni_version            = "v1.22.3-eksbuild.1"
 
+eks_node_instance_type = "t3.medium"
+eks_node_min_size      = 2
+eks_node_desired_size  = 2
+eks_node_max_size      = 4
+
 vpc_cidr = "10.0.0.0/16"
 
 public_subnet_cidrs = [
