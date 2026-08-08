@@ -43,6 +43,26 @@ variable "eks_node_max_size" {
   type        = number
 }
 
+variable "rds_postgres_version" {
+  description = "PostgreSQL version used by the RDS instance."
+  type        = string
+}
+
+variable "rds_instance_class" {
+  description = "Instance class used by the RDS PostgreSQL instance."
+  type        = string
+}
+
+variable "rds_database_name" {
+  description = "Name of the initial PostgreSQL database created by RDS."
+  type        = string
+}
+
+variable "rds_master_username" {
+  description = "Master username for the RDS PostgreSQL instance."
+  type        = string
+}
+
 variable "vpc_cidr" {
   description = "IPv4 CIDR block assigned to the VPC."
   type        = string

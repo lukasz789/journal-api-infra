@@ -28,7 +28,7 @@ resource "aws_security_group" "rds" {
 # EKS attaches its cluster security group to managed node group network interfaces.
 # This allows Pods running on those nodes to connect to PostgreSQL on port 5432.
 resource "aws_vpc_security_group_ingress_rule" "rds_postgresql" {
-  security_group_id            = aws_security_group.rds.id
+  security_group_id = aws_security_group.rds.id
   # could also use aws_security_group.eks_nodes.id (if created), but this is more robust because it will work even if the EKS cluster is recreated.
   # could also restrict it further so that only specific pods can access.
   referenced_security_group_id = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
@@ -40,5 +40,49 @@ resource "aws_vpc_security_group_ingress_rule" "rds_postgresql" {
 
   tags = {
     Name = "${var.project_name}-rds-postgresql-ingress"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# RDS PostgreSQL instance
+# ------------------------------------------------------------------------------
+# This is a cost-conscious setup: one small Single-AZ instance with the minimum
+# gp3 storage. It is suitable for learning, but it does not provide Multi-AZ HA.
+resource "aws_db_instance" "postgresql" {
+  identifier = "${var.project_name}-postgresql"
+
+  engine         = "postgres"
+  engine_version = var.rds_postgres_version
+  instance_class = var.rds_instance_class
+
+  db_name  = var.rds_database_name
+  username = var.rds_master_username
+  port     = 5432
+
+  # RDS generates the password and stores it in AWS Secrets Manager instead of
+  # keeping a plain-text password in terraform.tfvars and the Terraform state.
+  manage_master_user_password = true
+
+  allocated_storage = 20
+  storage_type      = "gp3"
+  storage_encrypted = true
+
+  db_subnet_group_name   = aws_db_subnet_group.rds.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = false
+  multi_az               = false
+
+  # Short backup retention (1 day) and no final snapshot keep this learning setup cheap
+  # and easy to destroy, at the cost of a much smaller recovery window.
+  backup_retention_period = 1
+  skip_final_snapshot     = true
+  deletion_protection     = false
+
+  # `false`, just for simplicity in this learning setup. In production, you would typically set this to `true` to automatically apply minor version upgrades.
+  auto_minor_version_upgrade = false
+  copy_tags_to_snapshot      = true
+
+  tags = {
+    Name = "${var.project_name}-postgresql"
   }
 }

@@ -32,3 +32,13 @@ output "eks_cluster_endpoint" {
   description = "Endpoint of the Kubernetes API server."
   value       = aws_eks_cluster.main.endpoint
 }
+
+output "rds_address" {
+  description = "Private hostname of the RDS PostgreSQL instance."
+  value       = aws_db_instance.postgresql.address
+}
+
+output "rds_master_user_secret_arn" {
+  description = "ARN of the Secrets Manager secret containing the RDS master credentials."
+  value       = aws_db_instance.postgresql.master_user_secret[0].secret_arn
+}

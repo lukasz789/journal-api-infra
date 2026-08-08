@@ -11,6 +11,11 @@ eks_node_min_size      = 2
 eks_node_desired_size  = 2
 eks_node_max_size      = 4
 
+rds_postgres_version = "17.10"
+rds_instance_class   = "db.t4g.micro"
+rds_database_name    = "career_journal"
+rds_master_username  = "career_journal_app"
+
 vpc_cidr = "10.0.0.0/16"
 
 public_subnet_cidrs = [
