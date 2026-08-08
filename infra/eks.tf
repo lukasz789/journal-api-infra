@@ -36,13 +36,13 @@ resource "aws_eks_node_group" "main" {
   node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = aws_subnet.private[*].id
 
-  version        = var.eks_cluster_version
+  version = var.eks_cluster_version
   # Amazon Linux 2023 optimised for EKS
   ami_type       = "AL2023_x86_64_STANDARD"
   capacity_type  = "ON_DEMAND"
   instance_types = [var.eks_node_instance_type]
   # Root EBS volume size in GiB. 20 is default and minimum value for Amazon Linux 2023 AMI.
-  disk_size      = 20
+  disk_size = 20
 
   scaling_config {
     min_size     = var.eks_node_min_size
