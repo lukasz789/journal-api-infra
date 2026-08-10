@@ -38,6 +38,11 @@ output "rds_address" {
   value       = aws_db_instance.postgresql.address
 }
 
+output "rds_database_name" {
+  description = "Name of the initial PostgreSQL database."
+  value       = aws_db_instance.postgresql.db_name
+}
+
 output "rds_master_user_secret_arn" {
   description = "ARN of the Secrets Manager secret containing the RDS master credentials."
   value       = aws_db_instance.postgresql.master_user_secret[0].secret_arn

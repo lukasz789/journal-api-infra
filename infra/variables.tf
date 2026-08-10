@@ -23,6 +23,8 @@ variable "eks_vpc_cni_version" {
   type        = string
 }
 
+# AWS Free Tier won't allow you to create a t3.medium instance which is mentioned in terraform.tfvars.example
+# If you want to use the AWS Free Tier, you can change the instance type to t3.small
 variable "eks_node_instance_type" {
   description = "EC2 instance type used by the EKS managed node group."
   type        = string

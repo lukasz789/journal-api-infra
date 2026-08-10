@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: journal-api-database-setup
+spec:
+  # Retry the Pod once if the first attempt fails.
+  backoffLimit: 1
+  template:
+    spec:
+      # A finished database setup process should not run continuously.
+      restartPolicy: Never
+      containers:
+        - name: database-setup
+          image: postgres:17.10-alpine
+
+          # Replace the image's default command and run only the psql client.
+          command: ["psql"]
+          args:
+            # env var supported by PostgreSQL's psql client to stop execution on the first error encountered.
+            - "--set=ON_ERROR_STOP=1"
+            - "--file=/database-setup/database_setup.sql"
+
+          # Load PGHOST, PGPORT, PGDATABASE, PGUSER and PGPASSWORD from the
+          # temporary Kubernetes Secret created by run_database_setup.sh.
+          envFrom:
+            - secretRef:
+                name: journal-api-database-setup
+          env:
+            # Require an encrypted connection between psql and RDS.
+            - name: PGSSLMODE
+              value: require
+
+          # Make the SQL file from the ConfigMap available inside the container.
+          volumeMounts:
+            - name: database-setup
+              mountPath: /database-setup
+              readOnly: true
+
+      # The ConfigMap created by the script contains database_setup.sql.
+      volumes:
+        - name: database-setup
+          configMap:
+            name: journal-api-database-schema
