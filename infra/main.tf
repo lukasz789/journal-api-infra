@@ -1,8 +1,15 @@
 # private repository; for public there is separate resource "aws_ecrpublic_repository"
 resource "aws_ecr_repository" "journal_api" {
   name = var.project_name
-  # MUTABLE means that the image can be overwritten with the same tag, while IMMUTABLE means that once an image is pushed with a specific tag, it cannot be overwritten.  
-  image_tag_mutability = "IMMUTABLE"
+
+  # Commit SHA tags cannot be overwritten, but CI/CD can move `latest`
+  # to the image built from the newest commit on the main branch.
+  image_tag_mutability = "IMMUTABLE_WITH_EXCLUSION"
+
+  image_tag_mutability_exclusion_filter {
+    filter      = "latest"
+    filter_type = "WILDCARD"
+  }
 
   encryption_configuration {
     # options are AES256 or KMS
