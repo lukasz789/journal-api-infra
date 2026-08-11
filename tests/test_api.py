@@ -12,7 +12,19 @@ These tests verify that the API endpoints work correctly, including:
 
 from unittest.mock import patch
 
+import pytest
 from httpx import AsyncClient
+
+
+@pytest.mark.no_db
+class TestHealth:
+    """Tests for GET /health endpoint."""
+
+    async def test_health(self, test_client: AsyncClient):
+        response = await test_client.get("/health")
+
+        assert response.status_code == 200
+        assert response.json() == {"status": "healthy"}
 
 
 class TestCreateEntry:
