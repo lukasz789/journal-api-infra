@@ -6,6 +6,24 @@ resource "aws_eks_cluster" "main" {
   role_arn = aws_iam_role.eks_cluster.arn
   version  = var.eks_cluster_version
 
+  /**
+  * Where AWS should look for the list of IAM users and roles that are allowed to access the cluster?
+  * - API_AND_CONFIG_MAP: AWS will look for IAM users and roles in both the EKS API and the aws-auth ConfigMap.
+  * - API: AWS will look for IAM users and roles in the EKS API only.
+  * --> managed by AWS EKS API, not by Kubernetes configuration files (ConfigMap)
+  * - CONFIG_MAP: AWS will look for IAM users and roles in the aws-auth Config
+  * --> so basically handled internally by Kubernetes configuration files, not by AWS EKS API.
+  * --> IAM roles/users are mapped to Kubernetes users/groups through the ConfigMap stored in the cluster.
+  */
+  /**
+  * Practical differences for above:
+  * With CONFIG_MAP you have to manually update the aws-auth ConfigMap in the cluster to grant access to IAM users and roles.
+  * With API you have to create resource aws_eks_access_entry to grant access to IAM users and roles.
+  */
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
+
   vpc_config {
     # EKS creates network interfaces in these subnets to communicate with worker nodes.
     subnet_ids = aws_subnet.private[*].id

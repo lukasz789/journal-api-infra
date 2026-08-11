@@ -8,6 +8,11 @@ output "ecr_repository_url" {
   value       = aws_ecr_repository.journal_api.repository_url
 }
 
+output "github_actions_role_arn" {
+  description = "ARN of the IAM role assumed by GitHub Actions through OIDC."
+  value       = aws_iam_role.github_actions.arn
+}
+
 output "vpc_id" {
   description = "ID of the VPC used by EKS and RDS."
   value       = aws_vpc.main.id

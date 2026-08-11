@@ -1,6 +1,8 @@
 aws_region   = "us-east-1"
 project_name = "journal-api-eks"
 
+github_repository = "lukasz789/journal-api-infra"
+
 eks_cluster_version = "1.36"
 
 eks_pod_identity_agent_version = "v1.3.10-eksbuild.2"

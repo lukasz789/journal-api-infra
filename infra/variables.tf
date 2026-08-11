@@ -8,6 +8,11 @@ variable "project_name" {
   type        = string
 }
 
+variable "github_repository" {
+  description = "GitHub repository allowed to assume the CI/CD IAM role, in owner/name format."
+  type        = string
+}
+
 variable "eks_cluster_version" {
   description = "Kubernetes minor version used by the EKS control plane."
   type        = string
