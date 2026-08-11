@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: journal-api
+  namespace: journal-api
+spec:
+  # Keep two copies of the API running so one Pod can be replaced without downtime.
+  replicas: 2
+  selector:
+    matchLabels:
+      app: journal-api
+  template:
+    metadata:
+      labels:
+        app: journal-api
+    spec:
+      containers:
+        - name: journal-api
+          # The deploy job will replace this with the ECR image tagged with the commit SHA.
+          image: IMAGE_PLACEHOLDER
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+
+          # Load DATABASE_URL and OPENAI_API_KEY from the Kubernetes Secret.
+          envFrom:
+            - secretRef:
+                name: journal-api-secrets
+
+          # Do not send traffic to the Pod until the API responds successfully.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          # Restart the container if the API stops responding.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+
+          # A t3.small has 2 vCPU and 2 GiB RAM, but application Pods cannot use all of it.
+          # The OS, kubelet and EKS add-ons such as aws-node, kube-proxy and Pod Identity Agent
+          # also consume resources on each node.
+          # https://docs.aws.amazon.com/eks/latest/best-practices/node_and_workload_efficiency.html
+          # -> memory is most dangerous since with too low CPU application will be slow but still work, while with too low memory the Pod will be killed
+          resources:
+            requests:
+              cpu: 100m # 0.1 vCPU
+              memory: 128Mi # 128 MB
+            limits:
+              cpu: 500m
+              memory: 512Mi
