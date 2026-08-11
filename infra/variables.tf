@@ -9,7 +9,9 @@ variable "project_name" {
 }
 
 variable "github_repository" {
-  description = "GitHub repository allowed to assume the CI/CD IAM role, in owner/name format."
+  # new format - expected for new repositories since 2026
+  # -> https://docs.github.com/en/actions/reference/security/oidc#immutable-subject-claims
+  description = "GitHub repository allowed to assume the CI/CD IAM role, in immutable owner@id/name@id format."
   type        = string
 }
 

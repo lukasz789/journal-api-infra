@@ -1,7 +1,7 @@
 aws_region   = "us-east-1"
 project_name = "journal-api-eks"
 
-github_repository = "lukasz789/journal-api-infra"
+github_repository = "lukasz789@80147497/journal-api-infra@1323312266"
 
 eks_cluster_version = "1.36"
 
