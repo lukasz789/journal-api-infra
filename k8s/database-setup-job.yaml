@@ -11,7 +11,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: database-setup
-          image: postgres:17.10-alpine
+          image: postgres:15.18-alpine
 
           # Replace the image's default command and run only the psql client.
           command: ["psql"]
