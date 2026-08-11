@@ -46,7 +46,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16
+        image: postgres:15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -91,3 +91,54 @@ jobs:
 
       - name: Run tests
         run: uv run pytest -v
+
+  # TODO - delete GitHub Container Registry (ghcr.io) later.
+  build-and-push:
+    name: Build and push
+    # Pull requests only verify the code. Images are published after a push to main.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Allows to fetch OIDC token which is used to assume the IAM role in AWS without storing AWS access keys in GitHub.
+      id-token: write
+      # Needed only to push the Docker image to GitHub Container Registry (ghcr.io).
+      # This is something OPTIONAL since I use ECR anyway.
+      packages: write
+
+    steps:
+      # Checkouts the code from commit that triggered this workflow.
+      - uses: actions/checkout@v4
+
+      # OIDC lets this job assume the IAM role without storing AWS access keys in GitHub.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # GITHUB_TOKEN is created automatically for this workflow run.
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Build once and publish the same image under all required registry tags.
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}
+            ${{ vars.ECR_REPOSITORY_URL }}:latest
+            ghcr.io/lukasz789/journal-api:latest
