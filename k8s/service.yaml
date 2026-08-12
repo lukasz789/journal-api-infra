@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: journal-api
+  namespace: journal-api
+spec:
+  # In this learning setup, the standard EKS service controller creates a public
+  # Classic Load Balancer in the public subnets tagged with kubernetes.io/role/elb.
+  # For production, AWS recommends the AWS Load Balancer Controller and an NLB.
+  type: LoadBalancer
+  selector:
+    # Send traffic only to Pods created by the journal-api Deployment.
+    app: journal-api
+  ports:
+    - name: http
+      # Clients connect to the load balancer on port 80.
+      port: 80
+      # Forward the traffic from the load balancer to the named container port, which is port 8000.
+      targetPort: http
