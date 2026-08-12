@@ -22,6 +22,10 @@ resource "aws_eks_cluster" "main" {
   */
   access_config {
     authentication_mode = "API_AND_CONFIG_MAP"
+    # Convenient for this simple learning project. In production, it is better
+    # to grant access to a dedicated IAM role through aws_eks_access_entry and
+    # let IAM users assume that role or use federated access through IAM Identity Center.
+    bootstrap_cluster_creator_admin_permissions = true
   }
 
   vpc_config {
