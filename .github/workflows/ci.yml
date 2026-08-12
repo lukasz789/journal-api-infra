@@ -142,3 +142,102 @@ jobs:
             ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}
             ${{ vars.ECR_REPOSITORY_URL }}:latest
             ghcr.io/lukasz789/journal-api:latest
+
+  deploy:
+    name: Deploy to EKS
+    # Deploy only the image built from a push to the main branch.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # Required to assume the AWS IAM role through GitHub OIDC.
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      # Add the EKS API endpoint and authentication command to kubeconfig.
+      - name: Configure kubectl
+        run: >-
+          aws eks update-kubeconfig
+          --region "${{ vars.AWS_REGION }}"
+          --name "${{ vars.EKS_CLUSTER_NAME }}"
+
+      # The CI/CD role is intentionally limited to the existing journal-api namespace.
+      # Apply k8s/namespace.yaml once with an administrator before the first deployment.
+      - name: Verify namespace exists
+        run: kubectl get namespace journal-api
+
+      # Create or update the Secret without storing its real values in the repository.
+      - name: Apply application secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          test -n "${DATABASE_URL}" || { echo "DATABASE_URL GitHub Secret is missing."; exit 1; }
+          test -n "${OPENAI_API_KEY}" || { echo "OPENAI_API_KEY GitHub Secret is missing."; exit 1; }
+
+          # `create --dry-run` generates the Secret manifest without creating it directly.
+          # Piping it to `apply` creates the Secret or updates it if it already exists.
+          kubectl --namespace journal-api create secret generic journal-api-secrets \
+            --from-literal=DATABASE_URL="${DATABASE_URL}" \
+            --from-literal=OPENAI_API_KEY="${OPENAI_API_KEY}" \
+            --dry-run=client \
+            --output=yaml \
+            | kubectl apply --filename=-
+
+      # Replace the manifest placeholder with the immutable image tag from this commit.
+      - name: Apply deployment
+        env:
+          IMAGE_URI: ${{ vars.ECR_REPOSITORY_URL }}:${{ github.sha }}
+        run: |
+          sed "s|IMAGE_PLACEHOLDER|${IMAGE_URI}|" k8s/deployment.yaml \
+            | kubectl apply --filename=-
+
+      # Creating a LoadBalancer Service asks AWS to provision the public load balancer.
+      - name: Apply service
+        run: kubectl apply --filename=k8s/service.yaml
+
+      - name: Wait for deployment
+        run: >-
+          kubectl --namespace journal-api rollout status
+          deployment/journal-api
+          --timeout=5m
+
+      # The AWS load balancer can take a few minutes to receive its public hostname.
+      - name: Wait for load balancer
+        run: |
+          for attempt in {1..30}; do
+            LOAD_BALANCER_HOSTNAME="$(
+              kubectl --namespace journal-api get service journal-api \
+                --output=jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+            )"
+
+            if [ -n "${LOAD_BALANCER_HOSTNAME}" ]; then
+              echo "Load balancer hostname: ${LOAD_BALANCER_HOSTNAME}"
+              exit 0
+            fi
+
+            echo "Waiting for the load balancer hostname..."
+            sleep 10
+          done
+
+          echo "The load balancer did not receive a hostname within 5 minutes."
+          exit 1
+
+      - name: Verify health endpoint
+        run: |
+          LOAD_BALANCER_HOSTNAME="$(
+            kubectl --namespace journal-api get service journal-api \
+              --output=jsonpath='{.status.loadBalancer.ingress[0].hostname}'
+          )"
+
+          curl --fail --retry 20 --retry-all-errors --retry-delay 10 \
+            "http://${LOAD_BALANCER_HOSTNAME}/health"
