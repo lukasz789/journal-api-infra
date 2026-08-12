@@ -28,6 +28,9 @@ AWS_ROLE_ARN="$(terraform -chdir="${REPO_ROOT}/infra" output -raw github_actions
 AWS_REGION="$(terraform -chdir="${REPO_ROOT}/infra" output -raw aws_region)"
 ECR_REPOSITORY_URL="$(terraform -chdir="${REPO_ROOT}/infra" output -raw ecr_repository_url)"
 EKS_CLUSTER_NAME="$(terraform -chdir="${REPO_ROOT}/infra" output -raw eks_cluster_name)"
+RDS_HOST="$(terraform -chdir="${REPO_ROOT}/infra" output -raw rds_address)"
+RDS_DATABASE_NAME="$(terraform -chdir="${REPO_ROOT}/infra" output -raw rds_database_name)"
+RDS_MASTER_USER_SECRET_ARN="$(terraform -chdir="${REPO_ROOT}/infra" output -raw rds_master_user_secret_arn)"
 
 # GitHub CLI detects the target repository from its Git remote.
 cd "${REPO_ROOT}"
@@ -35,5 +38,8 @@ gh variable set AWS_ROLE_ARN --body "${AWS_ROLE_ARN}"
 gh variable set AWS_REGION --body "${AWS_REGION}"
 gh variable set ECR_REPOSITORY_URL --body "${ECR_REPOSITORY_URL}"
 gh variable set EKS_CLUSTER_NAME --body "${EKS_CLUSTER_NAME}"
+gh variable set RDS_HOST --body "${RDS_HOST}"
+gh variable set RDS_DATABASE_NAME --body "${RDS_DATABASE_NAME}"
+gh variable set RDS_MASTER_USER_SECRET_ARN --body "${RDS_MASTER_USER_SECRET_ARN}"
 
 echo "GitHub Repository Variables configured successfully."

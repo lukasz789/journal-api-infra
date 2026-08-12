@@ -87,6 +87,14 @@ data "aws_iam_policy_document" "github_actions" {
     actions   = ["eks:DescribeCluster"]
     resources = [aws_eks_cluster.main.arn]
   }
+
+  # The deploy job reads the RDS credentials directly from Secrets Manager.
+  statement {
+    sid       = "ReadRDSMasterCredentials"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_db_instance.postgresql.master_user_secret[0].secret_arn]
+  }
 }
 
 resource "aws_iam_role_policy" "github_actions" {

@@ -175,14 +175,31 @@ jobs:
       - name: Verify namespace exists
         run: kubectl get namespace journal-api
 
-      # Create or update the Secret without storing its real values in the repository.
+      # Read the RDS password from AWS Secrets Manager and create the Kubernetes Secret.
       - name: Apply application secrets
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RDS_HOST: ${{ vars.RDS_HOST }}
+          RDS_DATABASE_NAME: ${{ vars.RDS_DATABASE_NAME }}
+          RDS_MASTER_USER_SECRET_ARN: ${{ vars.RDS_MASTER_USER_SECRET_ARN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          test -n "${DATABASE_URL}" || { echo "DATABASE_URL GitHub Secret is missing."; exit 1; }
+          test -n "${RDS_HOST}" || { echo "RDS_HOST GitHub Variable is missing."; exit 1; }
+          test -n "${RDS_DATABASE_NAME}" || { echo "RDS_DATABASE_NAME GitHub Variable is missing."; exit 1; }
+          test -n "${RDS_MASTER_USER_SECRET_ARN}" || { echo "RDS_MASTER_USER_SECRET_ARN GitHub Variable is missing."; exit 1; }
           test -n "${OPENAI_API_KEY}" || { echo "OPENAI_API_KEY GitHub Secret is missing."; exit 1; }
+
+          RDS_SECRET_JSON="$(
+            aws secretsmanager get-secret-value \
+              --secret-id "${RDS_MASTER_USER_SECRET_ARN}" \
+              --query SecretString \
+              --output text
+          )"
+
+          # `@uri` safely encodes special characters which can occur in credentials.
+          RDS_USERNAME="$(printf '%s' "${RDS_SECRET_JSON}" | jq --raw-output '.username | @uri')"
+          RDS_PASSWORD="$(printf '%s' "${RDS_SECRET_JSON}" | jq --raw-output '.password | @uri')"
+
+          DATABASE_URL="postgresql://${RDS_USERNAME}:${RDS_PASSWORD}@${RDS_HOST}:5432/${RDS_DATABASE_NAME}?sslmode=require"
 
           # `create --dry-run` generates the Secret manifest without creating it directly.
           # Piping it to `apply` creates the Secret or updates it if it already exists.
