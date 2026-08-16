@@ -59,8 +59,14 @@ resource "aws_db_instance" "postgresql" {
   username = var.rds_master_username
   port     = 5432
 
-  # RDS generates the password and stores it in AWS Secrets Manager instead of
-  # keeping a plain-text password in terraform.tfvars and the Terraform state.
+  # a) RDS stores the password in Secrets Manager instead of Terraform state.
+  # b) For a larger production setup, consider IAM database authentication so the
+  # application can use short-lived tokens instead of a stored password.
+  # c) RDS rotates this password every 7 days by default. In the current setup,
+  # the Kubernetes Secret and running Pods are updated only during deployment,
+  # so the application can keep the old password and lose database access. I
+  # accept this limitation because this is a practice project.
+  # ---THIS MUST NOT BE LEFT LIKE THIS IN A REAL PRODUCTION CONFIGURATION---
   manage_master_user_password = true
 
   allocated_storage = 20
