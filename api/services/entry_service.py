@@ -2,9 +2,16 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from opentelemetry import metrics
+
 from api.repositories.postgres_repository import PostgresDB
 
 logger = logging.getLogger("journal")
+meter = metrics.get_meter(__name__)
+entries_created_counter = meter.create_counter(
+    "journal_api_entries_created",
+    description="Number of successfully created journal entries.",
+)
 
 
 class EntryService:
@@ -18,7 +25,11 @@ class EntryService:
         now = datetime.now(UTC)
         entry = {**entry_data, "created_at": now, "updated_at": now}
         logger.debug("Entry created: %s", entry)
-        return await self.db.create_entry(entry)
+        created_entry = await self.db.create_entry(entry)
+
+        # Increment only after the entry has been saved successfully.
+        entries_created_counter.add(1)
+        return created_entry
 
     async def get_all_entries(self) -> list[dict[str, Any]]:
         """Gets all entries."""
