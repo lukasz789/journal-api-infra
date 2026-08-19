@@ -22,6 +22,9 @@ spec:
           ports:
             - name: http
               containerPort: 8000
+            # Internal endpoint scraped by Prometheus; it is not exposed publicly.
+            - name: metrics
+              containerPort: 9464
 
           # Load DATABASE_URL and OPENAI_API_KEY from the Kubernetes Secret.
           envFrom:
