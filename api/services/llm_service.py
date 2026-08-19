@@ -17,8 +17,11 @@ from typing import cast
 
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionMessageParam
+from opentelemetry import trace
 
 from api.config import get_settings
+
+tracer = trace.get_tracer(__name__)
 
 
 def _normalize_llm_json(content: str) -> dict:
@@ -106,11 +109,13 @@ async def analyze_journal_entry(
         ),
     ]
 
-    response = await client.chat.completions.create(
-        model=settings.openai_model,
-        messages=messages,
-        response_format={"type": "json_object"},
-    )
+    # Create a child span so the trace shows how long the external LLM call took.
+    with tracer.start_as_current_span("llm.analyze_entry"):
+        response = await client.chat.completions.create(
+            model=settings.openai_model,
+            messages=messages,
+            response_format={"type": "json_object"},
+        )
 
     content = response.choices[0].message.content
     if content is None:
