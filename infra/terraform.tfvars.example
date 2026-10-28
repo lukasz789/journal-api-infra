@@ -5,8 +5,9 @@ github_repository = "lukasz789@80147497/journal-api-infra@1323312266"
 
 eks_cluster_version = "1.36"
 
-eks_pod_identity_agent_version = "v1.3.10-eksbuild.2"
-eks_vpc_cni_version            = "v1.22.3-eksbuild.1"
+eks_pod_identity_agent_version       = "v1.3.10-eksbuild.2"
+eks_vpc_cni_version                  = "v1.22.3-eksbuild.1"
+eks_cloudwatch_observability_version = "v6.2.0-eksbuild.1"
 
 eks_node_instance_type = "t3.medium"
 eks_node_min_size      = 2

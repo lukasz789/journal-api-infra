@@ -31,6 +31,15 @@ spec:
             - secretRef:
                 name: journal-api-secrets
 
+          env:
+            # The app already creates traces in api/telemetry.py. This variable
+            # tells it where to send them: the CloudWatch Agent Service in the
+            # amazon-cloudwatch namespace, over HTTP on port 4316.
+            # The agent sends them onward to X-Ray over HTTPS on port 443 using
+            # its IAM role; Journal API does not need AWS credentials for this.
+            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+              value: http://cloudwatch-agent.amazon-cloudwatch:4316/v1/traces
+
           # Do not send traffic to the Pod until the API responds successfully.
           readinessProbe:
             httpGet:
