@@ -1,0 +1,127 @@
+# Settings for the kube-prometheus-stack Helm chart, not a Kubernetes manifest.
+# Helm combines these settings with the chart to create the Kubernetes objects.
+
+# We will create our alert in CloudWatch, so this stack does not need Alertmanager
+# or the chart's default alerting and recording rules.
+alertmanager:
+  enabled: false
+
+defaultRules:
+  create: false
+
+grafana:
+  # We will add our own dashboard later.
+  defaultDashboardsEnabled: false
+
+  # Keep Grafana inside the cluster. Access it through kubectl port-forward.
+  service:
+    type: ClusterIP
+
+  # Learning setup: no EBS volume creation. Dashboard will be stored in Git instead.
+  persistence:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 384Mi
+
+  # The chart's helper containers load dashboard and datasource ConfigMaps.
+  # They run in the Grafana Pod but have their own resource requests and limits,
+  # separate from the Grafana container. Their requests add to the Pod's total.
+  sidecar:
+    # Do not add a Grafana connection to Alertmanager, which is disabled above.
+    datasources:
+      alertmanager:
+        enabled: false
+
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+prometheus:
+  prometheusSpec:
+    # Keep up to one day of metrics, or less if stored blocks reach 1 GB.
+    # Scrape once a minute to reduce load on this learning cluster.
+    retention: 24h
+    retentionSize: 1GB
+    scrapeInterval: 60s
+
+    # Use temporary node storage rather than creating an EBS volume.
+    # Metrics are lost when this Pod is removed or moved to another node.
+    storageSpec:
+      emptyDir:
+        # retentionSize: 1GB (from above) triggers deletion of old metric blocks.
+        # sizeLimit: 2Gi limits the entire temporary storage, including
+        # metric blocks, WAL (recent metrics log), and temporary files.
+        # Extra space provides a buffer for these files.
+        sizeLimit: 2Gi
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 768Mi
+
+prometheusOperator:
+  # The Operator turns resources such as Prometheus and ServiceMonitor into
+  # running Pods and scrape configuration; it does not store the metrics itself.
+  # Basically it's a controller for Prometheus and related resources.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Reloads Prometheus configuration when it changes, without restarting Prometheus.
+  prometheusConfigReloader:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        cpu: 100m
+        memory: 64Mi
+
+# Disable the chart's default scrape targets for these EKS-managed components.
+kubeEtcd:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+
+# Focus on workloads and node health in this lab; skip kube-proxy's own metrics.
+kubeProxy:
+  enabled: false
+
+# Reports Kubernetes object state, e.g. expected and available Deployment replicas.
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi
+
+# Runs on each worker node and reports its CPU, memory and other host metrics.
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 64Mi
