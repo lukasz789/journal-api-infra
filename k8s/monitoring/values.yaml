@@ -10,14 +10,14 @@ defaultRules:
   create: false
 
 grafana:
-  # We will add our own dashboard later.
+  # Load our Journal API dashboard instead of the chart's bundled dashboards.
   defaultDashboardsEnabled: false
 
   # Keep Grafana inside the cluster. Access it through kubectl port-forward.
   service:
     type: ClusterIP
 
-  # Learning setup: no EBS volume creation. Dashboard will be stored in Git instead.
+  # Learning setup: no EBS volume creation. The dashboard definition comes from Git.
   persistence:
     enabled: false
 
@@ -33,8 +33,17 @@ grafana:
   # They run in the Grafana Pod but have their own resource requests and limits,
   # separate from the Grafana container. Their requests add to the Pod's total.
   sidecar:
+  # Load our dashboard from the ConfigMap created by install_monitoring.sh.
+  # The sidecar finds it using the grafana_dashboard=1 label.
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+
     # Do not add a Grafana connection to Alertmanager, which is disabled above.
     datasources:
+      # The dashboard uses this UID to query the chart's Prometheus connection.
+      uid: prometheus
       alertmanager:
         enabled: false
 
