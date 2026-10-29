@@ -218,9 +218,12 @@ jobs:
           sed "s|IMAGE_PLACEHOLDER|${IMAGE_URI}|" k8s/deployment.yaml \
             | kubectl apply --filename=-
 
-      # Creating a LoadBalancer Service asks AWS to provision the public load balancer.
-      - name: Apply service
-        run: kubectl apply --filename=k8s/service.yaml
+      # The API Service creates a public load balancer; the metrics Service stays internal.
+      - name: Apply services
+        run: >-
+          kubectl apply
+          --filename=k8s/service.yaml
+          --filename=k8s/journal-api-prometheus-service.yaml
 
       - name: Wait for deployment
         run: >-

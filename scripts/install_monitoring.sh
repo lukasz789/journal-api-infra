@@ -39,5 +39,10 @@ kubectl --namespace monitoring wait \
     prometheus/monitoring-kube-prometheus-prometheus \
     --timeout=5m
 
+# Create a ServiceMonitor that tells Prometheus how to discover and scrape
+# Journal API metrics through the app's metrics Service.
+kubectl --namespace monitoring apply \
+    --filename "${REPO_ROOT}/k8s/monitoring/journal-api-prometheus-servicemonitor.yaml"
+
 # Show all monitoring Pods and their status.
 kubectl get pods --namespace monitoring

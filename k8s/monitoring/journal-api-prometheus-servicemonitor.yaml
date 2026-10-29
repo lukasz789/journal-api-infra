@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: journal-api
+  namespace: monitoring
+  labels:
+    # The Prometheus installed by our Helm release selects this label.
+    release: monitoring
+spec:
+  # Find the Journal API metrics Service by its namespace and labels.
+  namespaceSelector:
+    matchNames:
+      - journal-api
+  selector:
+    matchLabels:
+      app: journal-api
+      component: metrics
+  endpoints:
+    # The scrape interval is inherited from values.yaml (currently 60 seconds).
+    - port: metrics
+      path: /metrics
