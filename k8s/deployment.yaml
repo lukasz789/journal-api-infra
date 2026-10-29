@@ -40,6 +40,20 @@ spec:
             - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
               value: http://cloudwatch-agent.amazon-cloudwatch:4316/v1/traces
 
+            # The agent runs on every worker and listens on that worker's IP.
+            # Use the local worker for metrics; the add-on's existing Service in
+            # version 6.2.0 does not expose the generic OTLP metrics port 4318.
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+              value: http://$(NODE_IP):4318/v1/metrics
+            # Each report covers only the time since the previous report.
+            # Earlier requests were already reported and must not be counted again.
+            - name: OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+              value: DELTA
+
           # Do not send traffic to the Pod until the API responds successfully.
           readinessProbe:
             httpGet:

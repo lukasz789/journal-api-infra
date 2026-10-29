@@ -44,7 +44,7 @@ resource "aws_eks_addon" "vpc_cni" {
 # Amazon CloudWatch Observability add-on
 # ------------------------------------------------------------------------------
 # Install separate Pods to send application monitoring data to AWS:
-# - CloudWatch Agent receives traces from Journal API and sends them to X-Ray.
+# - CloudWatch Agent sends Journal API traces to X-Ray and HTTP metrics to CloudWatch.
 # - Fluent Bit reads container stdout/stderr and sends logs to CloudWatch Logs.
 # This one add-on installs both agents and their Kubernetes objects, including
 # the Service and ServiceAccount. Their AWS access comes from the role in iam.tf.
@@ -68,8 +68,11 @@ resource "aws_eks_addon" "cloudwatch_observability" {
     }
 
     agent = {
+      # Let the app reach the agent on its worker's private IP (NODE_IP).
+      # The agent already uses host networking by default; make this dependency explicit.
+      hostNetwork = true
       # This replaces the agent's default configuration. We omit Kubernetes
-      # Container Insights metrics because Prometheus will collect those later.
+      # Container Insights metrics because Prometheus already collects that data.
       config = {
         traces = {
           traces_collected = {
@@ -81,13 +84,54 @@ resource "aws_eks_addon" "cloudwatch_observability" {
           }
         }
       }
+
+      # Receive metrics -> keep the HTTP metric -> remove unnecessary labels -> send to CloudWatch.
+      otelConfig = <<-YAML
+        receivers:
+          # Receive metrics sent by the app to its worker's private IP.
+          otlp/http_metrics:
+            protocols:
+              http:
+                endpoint: 0.0.0.0:4318
+
+        processors:
+          # Drop everything except the HTTP duration histogram. It also contains
+          # request counts and statuses. The custom entries counter is not stored in AWS.
+          filter/http_metrics:
+            metrics:
+              metric:
+                - 'name != "http.server.duration"'
+          # Keep only status codes as metric dimensions, not URLs or hostnames.
+          transform/http_metrics:
+            metric_statements:
+              - context: datapoint
+                statements:
+                  - 'keep_keys(attributes, ["http.status_code"])'
+
+        exporters:
+          # Publish to a CloudWatch metric namespace using the agent's IAM role.
+          awscloudwatch/http_metrics:
+            namespace: JournalAPI
+            region: ${var.aws_region}
+            # Do not turn SDK/resource details into extra metric dimensions.
+            resource_to_telemetry_conversion:
+              enabled: false
+
+        service:
+          pipelines:
+            # The order is: receive -> filter -> remove extra labels -> publish.
+            metrics/http_metrics:
+              receivers: [otlp/http_metrics]
+              processors: [filter/http_metrics, transform/http_metrics]
+              exporters: [awscloudwatch/http_metrics]
+      YAML
     }
   })
 
   pod_identity_association {
     # Connect the agents' Kubernetes ServiceAccount to the IAM role in iam.tf.
     # Pod Identity gives Pods using this account temporary credentials for that
-    # role, so they can write to CloudWatch Logs and X-Ray. The app does not get them.
+    # role, so they can write logs, metrics and traces to AWS. The app does not get them.
     service_account = "cloudwatch-agent"
     role_arn        = aws_iam_role.cloudwatch_agent.arn
   }

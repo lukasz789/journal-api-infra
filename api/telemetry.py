@@ -4,11 +4,13 @@ import os
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
+from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExporter
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 from opentelemetry.exporter.prometheus import PrometheusMetricReader
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.logging import LoggingInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import MetricReader, PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -32,11 +34,21 @@ def setup_telemetry(app: FastAPI) -> None:
             )
         trace.set_tracer_provider(tracer_provider)
 
-        # Expose metrics on a separate internal port for Prometheus.
+        # Prometheus pulls all application metrics from the internal /metrics port.
+        readers: list[MetricReader] = [PrometheusMetricReader()]
+        if metrics_endpoint := os.getenv("OTEL_EXPORTER_OTLP_METRICS_ENDPOINT"):
+            # Send metrics to the agent once a minute; it selects HTTP metrics for AWS.
+            # Prometheus still collects all metrics through its separate reader.
+            readers.append(
+                PeriodicExportingMetricReader(
+                    OTLPMetricExporter(endpoint=metrics_endpoint),
+                    export_interval_millis=60_000,
+                )
+            )
         metrics.set_meter_provider(
             MeterProvider(
                 resource=resource,
-                metric_readers=[PrometheusMetricReader()],
+                metric_readers=readers,
             )
         )
         start_http_server(port=9464, addr="0.0.0.0")  # noqa: S104

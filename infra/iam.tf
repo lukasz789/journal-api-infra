@@ -107,7 +107,7 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_cni" {
 # ------------------------------------------------------------------------------
 # IAM role used by the monitoring Pods through EKS Pod Identity
 # ------------------------------------------------------------------------------
-# Create one role for the add-on's agents to send logs and traces to AWS.
+# Create one role for the add-on's agents to send logs, metrics and traces to AWS.
 # This trust policy allows Pod Identity to obtain temporary credentials for it.
 # The association in eks-addons.tf selects the Pods that can use the role;
 # the policy attached below defines what they are allowed to do in AWS.
@@ -141,8 +141,7 @@ resource "aws_iam_role" "cloudwatch_agent" {
 
 resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
   role = aws_iam_role.cloudwatch_agent.name
-  # Give the agents permission to send logs to CloudWatch Logs and traces to X-Ray.
-  # This one policy covers both services. It also allows publishing metrics,
-  # although our app currently exposes metrics only for Prometheus to collect.
+  # This one policy lets the agents publish CloudWatch metrics, send container
+  # logs to CloudWatch Logs, and send traces to X-Ray. The app needs no AWS role.
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
