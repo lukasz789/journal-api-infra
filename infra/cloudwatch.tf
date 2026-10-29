@@ -121,7 +121,53 @@ resource "aws_cloudwatch_dashboard" "journal_api" {
             | limit 20
           QUERY
         }
+      },
+      {
+        type   = "alarm"
+        x      = 0
+        y      = 12
+        width  = 24
+        height = 3
+        properties = {
+          title = "HTTP 500 alarm - console only, no notifications"
+          # Display this alarm's current state, not another metric graph.
+          alarms = [aws_cloudwatch_metric_alarm.http_500.arn]
+        }
       }
     ]
   })
+}
+
+# ------------------------------------------------------------------------------
+# HTTP 500 alarm: visible in CloudWatch, without notifications
+# ------------------------------------------------------------------------------
+resource "aws_cloudwatch_metric_alarm" "http_500" {
+  alarm_name        = "${var.project_name}-http-500"
+  alarm_description = "3+ HTTP 500 responses per 5-minute period. Console-only alarm; no SNS notifications."
+
+  namespace   = "JournalAPI"
+  metric_name = "http.server.duration"
+  # Count requests with status 500.
+  statistic = "SampleCount"
+  dimensions = {
+    "http.status_code" = "500"
+  }
+
+  # Time window for counting HTTP 500 errors, not the duration of an error.
+  # CloudWatch counts how many errors occur within each 5-minute (300s) period.
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 3
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+
+  # Treat missing data as no breach of the HTTP 500 threshold.
+  treat_missing_data = "notBreaching"
+
+  # Learning setup: state changes are visible in the console, without email or SMS.
+  # A future improvement is to enable actions and send notifications through SNS.
+  actions_enabled = false
+
+  tags = {
+    Name = "${var.project_name}-http-500"
+  }
 }
