@@ -37,7 +37,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
       # Old GitHub OIDC format used only names:
       # values = ["repo:lukasz789/journal-api-infra:ref:refs/heads/main"]
       # New repositories (since 2026) add permanent owner and repository IDs to the same value.
-      values   = ["repo:${var.github_repository}:ref:refs/heads/main"]
+      values = ["repo:${var.github_repository}:ref:refs/heads/main"]
     }
   }
 }
