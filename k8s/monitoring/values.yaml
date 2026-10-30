@@ -10,7 +10,7 @@ defaultRules:
   create: false
 
 grafana:
-  # Load our Journal API dashboard instead of the chart's bundled dashboards.
+  # Load our application and infrastructure dashboards instead of the bundled ones.
   defaultDashboardsEnabled: false
 
   # Keep Grafana inside the cluster. Access it through kubectl port-forward.
@@ -33,8 +33,8 @@ grafana:
   # They run in the Grafana Pod but have their own resource requests and limits,
   # separate from the Grafana container. Their requests add to the Pod's total.
   sidecar:
-  # Load our dashboard from the ConfigMap created by install_monitoring.sh.
-  # The sidecar finds it using the grafana_dashboard=1 label.
+    # Load both dashboards from the ConfigMap created by install_monitoring.sh.
+    # The sidecar finds it using the grafana_dashboard=1 label.
     dashboards:
       enabled: true
       label: grafana_dashboard

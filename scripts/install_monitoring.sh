@@ -44,15 +44,16 @@ kubectl --namespace monitoring wait \
 kubectl --namespace monitoring apply \
     --filename "${REPO_ROOT}/k8s/monitoring/journal-api-prometheus-servicemonitor.yaml"
 
-# Store the dashboard JSON in a ConfigMap. Generate YAML locally, then create
+# Store both dashboard JSON files in one ConfigMap. Generate YAML locally, then create
 # or update the object in the cluster so rerunning the script also updates it.
 kubectl --namespace monitoring create configmap journal-api-grafana-dashboard \
     --from-file="journal-api-dashboard.json=${REPO_ROOT}/k8s/monitoring/journal-api-dashboard.json" \
+    --from-file="journal-api-infrastructure-dashboard.json=${REPO_ROOT}/k8s/monitoring/journal-api-infrastructure-dashboard.json" \
     --dry-run=client \
     --output=yaml \
     | kubectl --namespace monitoring apply --filename=-
 
-# Label the ConfigMap so Grafana can automatically load our dashboard.
+# Label the ConfigMap so Grafana can automatically load both dashboards.
 kubectl --namespace monitoring label configmap journal-api-grafana-dashboard \
     grafana_dashboard=1 --overwrite
 
