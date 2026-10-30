@@ -68,9 +68,6 @@ resource "aws_eks_addon" "cloudwatch_observability" {
     }
 
     agent = {
-      # Let the app reach the agent on its worker's private IP (NODE_IP).
-      # The agent already uses host networking by default; make this dependency explicit.
-      hostNetwork = true
       # This replaces the agent's default configuration. We omit Kubernetes
       # Container Insights metrics because Prometheus already collects that data.
       config = {
@@ -86,7 +83,8 @@ resource "aws_eks_addon" "cloudwatch_observability" {
       }
 
       # Receive metrics -> keep the HTTP metric -> remove unnecessary labels -> send to CloudWatch.
-      otelConfig = <<-YAML
+      # The EKS add-on requires an object, so decode the YAML before encoding it as JSON.
+      otelConfig = yamldecode(<<-YAML
         receivers:
           # Receive metrics sent by the app to its worker's private IP.
           otlp/http_metrics:
@@ -125,6 +123,7 @@ resource "aws_eks_addon" "cloudwatch_observability" {
               processors: [filter/http_metrics, transform/http_metrics]
               exporters: [awscloudwatch/http_metrics]
       YAML
+      )
     }
   })
 
