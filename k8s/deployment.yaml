@@ -32,6 +32,13 @@ spec:
                 name: journal-api-secrets
 
           env:
+            # Send LLM requests to Amazon Bedrock instead of the Python defaults.
+            # The Bedrock API key comes from journal-api-secrets above.
+            - name: OPENAI_BASE_URL
+              value: https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1
+            - name: OPENAI_MODEL
+              value: openai.gpt-oss-20b-1:0
+
             # The app already creates traces in api/telemetry.py. This variable
             # tells it where to send them: the CloudWatch Agent Service in the
             # amazon-cloudwatch namespace, over HTTP on port 4316.
