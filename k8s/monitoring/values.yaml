@@ -27,7 +27,7 @@ grafana:
       memory: 128Mi
     limits:
       cpu: 300m
-      memory: 384Mi
+      memory: 768Mi
 
   # The chart's helper containers load dashboard and datasource ConfigMaps.
   # They run in the Grafana Pod but have their own resource requests and limits,
