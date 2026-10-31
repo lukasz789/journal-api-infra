@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
 
+# GitHub automatically creates a GITHUB_TOKEN for each job.
+# Allow checkout to read the repository contents.
 permissions:
   contents: read
 
@@ -44,6 +46,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
 
+    # Start a temporary test database on the runner and wait until it is healthy.
     services:
       postgres:
         image: postgres:15
@@ -64,9 +67,8 @@ jobs:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: career_journal
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/career_journal
-      # Required by api.config.Settings so the app boots. Tests never call a
-      # real LLM — Task 4 uses an injected MockAsyncOpenAI client — so any
-      # non-empty value works.
+      # Application settings require an API key value. Tests mock LLM calls,
+      # so a placeholder is sufficient.
       OPENAI_API_KEY: ci-placeholder-not-used-by-mock
 
     steps:
@@ -83,6 +85,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked --all-extras
 
+      # Create the entries table and indexes in the temporary test database.
       - name: Initialize database schema
         run: |
           PGPASSWORD=postgres psql \
