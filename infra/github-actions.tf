@@ -106,7 +106,8 @@ resource "aws_iam_role_policy" "github_actions" {
 # ------------------------------------------------------------------------------
 # Kubernetes API access for the GitHub Actions role
 # ------------------------------------------------------------------------------
-# Accept in the EKS cluster the IAM role used by GitHub Actions workflows.
+# Register the GitHub Actions IAM role as an
+# authenticated identity in the EKS cluster.
 resource "aws_eks_access_entry" "github_actions" {
   cluster_name  = aws_eks_cluster.main.name
   principal_arn = aws_iam_role.github_actions.arn

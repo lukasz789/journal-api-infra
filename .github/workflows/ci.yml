@@ -49,6 +49,7 @@ jobs:
     # Start a temporary test database on the runner and wait until it is healthy.
     services:
       postgres:
+        # From Docker Hub official images
         image: postgres:15
         env:
           POSTGRES_USER: postgres
@@ -56,6 +57,8 @@ jobs:
           POSTGRES_DB: career_journal
         ports:
           - 5432:5432
+        # Additional flags passed to the Docker container creation command
+        # to ensure PostgreSQL is ready to accept connections before running tests.
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -141,7 +144,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      # Required to assume the AWS IAM role through GitHub OIDC.
       id-token: write
 
     steps:
@@ -160,8 +162,7 @@ jobs:
           --region "${{ vars.AWS_REGION }}"
           --name "${{ vars.EKS_CLUSTER_NAME }}"
 
-      # The CI/CD role is intentionally limited to the existing journal-api namespace.
-      # Apply k8s/namespace.yaml once with an administrator before the first deployment.
+      # Verify journal-api exists before deploying resources into it.
       - name: Verify namespace exists
         run: kubectl get namespace journal-api
 

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="710" viewBox="0 0 1080 710" role="img" aria-labelledby="title desc">
+<title id="title">Journal API telemetry</title>
+<desc id="desc">Application and infrastructure metrics through Prometheus to Grafana; HTTP metrics through CloudWatch Agent to CloudWatch Metrics; spans through the same agent to X-Ray; container stdout and stderr through Fluent Bit to CloudWatch Logs. Prometheus initiates scrapes, and Grafana queries stored metrics. Trace identifiers correlate X-Ray traces and CloudWatch logs.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 1 L 9 5 L 0 9 Z" fill="context-stroke"/></marker></defs>
+<rect width="1080" height="710" fill="#ffffff"/>
+<g font-family="Arial, Helvetica, sans-serif">
+<rect x="30" y="140" width="1020" height="125" rx="10" fill="#f0f8ed" stroke="#f0f8ed" stroke-width="1.5"/>
+<rect x="50" y="162" width="260" height="80" rx="10" fill="#ffffff" stroke="#99bc88" stroke-width="1.5"/>
+<text x="180.0" y="197.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">API + infrastructure</text>
+<text x="180.0" y="224.0" text-anchor="middle" fill="#475569" font-size="17">HTTP, custom, CPU/RAM</text>
+<rect x="405" y="162" width="270" height="80" rx="10" fill="#ffffff" stroke="#99bc88" stroke-width="1.5"/>
+<text x="540.0" y="197.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">Prometheus</text>
+<text x="540.0" y="224.0" text-anchor="middle" fill="#475569" font-size="17">Scrape and store</text>
+<rect x="775" y="162" width="255" height="80" rx="10" fill="#ffffff" stroke="#99bc88" stroke-width="1.5"/>
+<text x="902.5" y="197.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">Grafana</text>
+<text x="902.5" y="224.0" text-anchor="middle" fill="#475569" font-size="17">Two dashboards in EKS</text>
+<rect x="30" y="280" width="1020" height="125" rx="10" fill="#eef6fc" stroke="#eef6fc" stroke-width="1.5"/>
+<rect x="50" y="302" width="260" height="80" rx="10" fill="#ffffff" stroke="#8bb6d3" stroke-width="1.5"/>
+<text x="180.0" y="337.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">API HTTP metrics</text>
+<text x="180.0" y="364.0" text-anchor="middle" fill="#475569" font-size="17">OpenTelemetry</text>
+<rect x="405" y="302" width="270" height="80" rx="10" fill="#ffffff" stroke="#8bb6d3" stroke-width="1.5"/>
+<text x="540.0" y="337.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">CloudWatch Agent</text>
+<text x="540.0" y="364.0" text-anchor="middle" fill="#475569" font-size="17">HTTP metric filtering</text>
+<rect x="775" y="302" width="255" height="80" rx="10" fill="#ffffff" stroke="#8bb6d3" stroke-width="1.5"/>
+<text x="902.5" y="337.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">CloudWatch Metrics</text>
+<text x="902.5" y="364.0" text-anchor="middle" fill="#475569" font-size="17">Dashboard + HTTP 500 alarm</text>
+<rect x="30" y="420" width="1020" height="125" rx="10" fill="#f5f0fc" stroke="#f5f0fc" stroke-width="1.5"/>
+<rect x="50" y="442" width="260" height="80" rx="10" fill="#ffffff" stroke="#b8a1d6" stroke-width="1.5"/>
+<text x="180.0" y="477.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">API request spans</text>
+<text x="180.0" y="504.0" text-anchor="middle" fill="#475569" font-size="17">HTTP + llm.analyze_entry</text>
+<rect x="405" y="442" width="270" height="80" rx="10" fill="#ffffff" stroke="#b8a1d6" stroke-width="1.5"/>
+<text x="540.0" y="489.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">CloudWatch Agent</text>
+<rect x="775" y="442" width="255" height="80" rx="10" fill="#ffffff" stroke="#b8a1d6" stroke-width="1.5"/>
+<text x="902.5" y="477.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">AWS X-Ray</text>
+<text x="902.5" y="504.0" text-anchor="middle" fill="#475569" font-size="17">Request duration + errors</text>
+<rect x="30" y="560" width="1020" height="125" rx="10" fill="#fff5e9" stroke="#fff5e9" stroke-width="1.5"/>
+<rect x="50" y="582" width="260" height="80" rx="10" fill="#ffffff" stroke="#d9b38b" stroke-width="1.5"/>
+<text x="180.0" y="617.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">Container logs</text>
+<text x="180.0" y="644.0" text-anchor="middle" fill="#475569" font-size="17">stdout / stderr</text>
+<rect x="405" y="582" width="270" height="80" rx="10" fill="#ffffff" stroke="#d9b38b" stroke-width="1.5"/>
+<text x="540.0" y="617.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">Fluent Bit</text>
+<text x="540.0" y="644.0" text-anchor="middle" fill="#475569" font-size="17">Collect and enrich</text>
+<rect x="775" y="582" width="255" height="80" rx="10" fill="#ffffff" stroke="#d9b38b" stroke-width="1.5"/>
+<text x="902.5" y="617.0" text-anchor="middle" fill="#172b4d" font-size="20" font-weight="700">CloudWatch Logs</text>
+<text x="902.5" y="644.0" text-anchor="middle" fill="#475569" font-size="17">Search + trace correlation</text>
+<polyline points="310,202 405,202" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="675,202 775,202" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="310,342 405,342" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="675,342 775,342" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="310,482 405,482" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="675,482 775,482" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="310,622 405,622" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<polyline points="675,622 775,622" fill="none" stroke="#334155" stroke-width="2" stroke-linejoin="round" marker-end="url(#arrow)"/>
+<text x="30" y="38" text-anchor="start" fill="#172b4d" font-size="28" font-weight="700">Journal API telemetry</text>
+<text x="55" y="119" text-anchor="start" fill="#64748b" font-size="16" font-weight="700">SOURCE IN EKS</text>
+<text x="405" y="119" text-anchor="start" fill="#64748b" font-size="16" font-weight="700">COLLECTION / STORAGE</text>
+<text x="775" y="119" text-anchor="start" fill="#64748b" font-size="16" font-weight="700">BACKEND / VIEW</text>
+<text x="357" y="185" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">Scrape data</text>
+<text x="725" y="185" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">Query results</text>
+<text x="357" y="325" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">OTLP</text>
+<text x="725" y="325" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">AWS API</text>
+<text x="357" y="465" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">OTLP</text>
+<text x="725" y="465" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">AWS API</text>
+<text x="357" y="605" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">Log records</text>
+<text x="725" y="605" text-anchor="middle" fill="#475569" font-size="14" font-weight="400">AWS API</text>
+</g>
+</svg>

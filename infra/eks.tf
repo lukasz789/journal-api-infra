@@ -66,6 +66,9 @@ resource "aws_eks_node_group" "main" {
   # Root EBS volume size in GiB. 20 is default and minimum value for Amazon Linux 2023 AMI.
   disk_size = 20
 
+  # Sets the desired worker count and min/max limits. 
+  # It will NOT autoscale, because there is no setup for Cluster Autoscaler or Karpenter. 
+  # It will just maintain the desired number of nodes.
   scaling_config {
     min_size     = var.eks_node_min_size
     desired_size = var.eks_node_desired_size
